@@ -169,9 +169,6 @@ void ReflectometryReductionOneAuto2::init() {
   declareProperty("WavelengthMax", Mantid::EMPTY_DBL(),
                   "Wavelength Max in angstroms", Direction::Input);
 
-  // Direct beam
-  initDirectBeamProperties();
-
   // Monitor properties
   initMonitorProperties();
   // Normalization by integrated monitors
@@ -195,11 +192,11 @@ void ReflectometryReductionOneAuto2::init() {
   declareProperty(
       Kernel::make_unique<ArrayProperty<double>>("CPp", Direction::Input),
       "Effective polarizing power of the polarizing system. "
-      "Expressed as a ratio 0 < Pp < 1");
+      "Expressed as a ratio 0 &lt; Pp &lt; 1");
   declareProperty(
       Kernel::make_unique<ArrayProperty<double>>("CAp", Direction::Input),
       "Effective polarizing power of the analyzing system. "
-      "Expressed as a ratio 0 < Ap < 1");
+      "Expressed as a ratio 0 &lt; Ap &lt; 1");
   declareProperty(
       Kernel::make_unique<ArrayProperty<double>>("CRho", Direction::Input),
       "Ratio of efficiencies of polarizer spin-down to polarizer "
@@ -287,7 +284,6 @@ void ReflectometryReductionOneAuto2::exec() {
 
   // Optional properties
 
-  populateDirectBeamProperties(alg);
   populateMonitorProperties(alg, instrument);
   alg->setPropertyValue("NormalizeByIntegratedMonitors",
                         getPropertyValue("NormalizeByIntegratedMonitors"));
@@ -439,17 +435,6 @@ ReflectometryReductionOneAuto2::calculateTheta(const std::string &instructions,
   // Take a factor of 0.5 of the detector position, which is expected to be at
   // 2 * theta
   return theta * 0.5;
-}
-
-/** Set direct beam properties
-*
-* @param alg :: ReflectometryReductionOne algorithm
-*/
-void ReflectometryReductionOneAuto2::populateDirectBeamProperties(
-    IAlgorithm_sptr alg) {
-
-  alg->setPropertyValue("RegionOfDirectBeam",
-                        getPropertyValue("RegionOfDirectBeam"));
 }
 
 /** Set algorithmic correction properties

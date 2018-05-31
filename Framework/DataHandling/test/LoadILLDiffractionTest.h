@@ -3,11 +3,11 @@
 
 #include <cxxtest/TestSuite.h>
 
+#include "MantidDataHandling/LoadILLDiffraction.h"
 #include "MantidAPI/AnalysisDataService.h"
-#include "MantidGeometry/Instrument/DetectorInfo.h"
 #include "MantidAPI/MatrixWorkspace.h"
 #include "MantidDataHandling/Load.h"
-#include "MantidDataHandling/LoadILLDiffraction.h"
+#include "MantidGeometry/Instrument/DetectorInfo.h"
 #include "MantidKernel/ConfigService.h"
 
 using namespace Mantid::API;
@@ -59,33 +59,54 @@ public:
     TS_ASSERT(!outputWS->isHistogramData())
     TS_ASSERT(!outputWS->isDistribution())
 
+    // two theta of the first pixel
+    TS_ASSERT_DELTA(outputWS->detectorInfo().signedTwoTheta(1) * RAD_2_DEG,
+                    -2.79662, 1E-5)
+
     TS_ASSERT_EQUALS(outputWS->x(0)[0], 0.)
-    TS_ASSERT_EQUALS(outputWS->y(0)[0], 2685529)
-    TS_ASSERT_DELTA(outputWS->e(0)[0], 1638.76, 0.01)
+    TS_ASSERT_EQUALS(outputWS->y(0)[0], 2685529.)
+    TS_ASSERT_DELTA(outputWS->e(0)[0], 1638.75, 0.01)
 
     TS_ASSERT_EQUALS(outputWS->x(1)[0], 0.)
-    TS_ASSERT_EQUALS(outputWS->y(1)[0], 548)
-    TS_ASSERT_DELTA(outputWS->e(1)[0], 23.40, 0.01)
+    TS_ASSERT_EQUALS(outputWS->y(1)[0], 0.)
+    TS_ASSERT_EQUALS(outputWS->e(1)[0], 0.)
 
-    TS_ASSERT_EQUALS(outputWS->x(2)[0], 0.)
-    TS_ASSERT_EQUALS(outputWS->y(2)[0], 991)
-    TS_ASSERT_DELTA(outputWS->e(2)[0], 31.48, 0.01)
+    TS_ASSERT_EQUALS(outputWS->x(64)[0], 0.)
+    TS_ASSERT_EQUALS(outputWS->y(64)[0], 0.)
+    TS_ASSERT_EQUALS(outputWS->e(64)[0], 0.)
+
+    TS_ASSERT_EQUALS(outputWS->x(65)[0], 0.)
+    TS_ASSERT_EQUALS(outputWS->y(65)[0], 548.)
+    TS_ASSERT_DELTA(outputWS->e(65)[0], 23.4, 0.01)
 
     TS_ASSERT_EQUALS(outputWS->x(1111)[0], 0.)
-    TS_ASSERT_EQUALS(outputWS->y(1111)[0], 7080)
-    TS_ASSERT_DELTA(outputWS->e(1111)[0], 84.14, 0.01)
+    TS_ASSERT_EQUALS(outputWS->y(1111)[0], 6285)
+    TS_ASSERT_DELTA(outputWS->e(1111)[0], 79.27, 0.01)
 
     TS_ASSERT_EQUALS(outputWS->x(3072)[0], 0.)
-    TS_ASSERT_EQUALS(outputWS->y(3072)[0], 0.)
-    TS_ASSERT_EQUALS(outputWS->e(3072)[0], 0.)
+    TS_ASSERT_EQUALS(outputWS->y(3072)[0], 7848.)
+    TS_ASSERT_DELTA(outputWS->e(3072)[0], 88.58, 0.01)
 
-    TS_ASSERT(outputWS->run().hasProperty("simulated_d20.TotalCount"))
-    TS_ASSERT(outputWS->run().hasProperty("AcquisitionSpy.Time"))
-    TS_ASSERT(outputWS->run().hasProperty("SampleSettings.SampleTemp"))
+    const auto &run = outputWS->run();
+    TS_ASSERT(run.hasProperty("simulated_d20.TotalCount"))
+    TS_ASSERT(run.hasProperty("AcquisitionSpy.Time"))
+    TS_ASSERT(run.hasProperty("SampleSettings.SampleTemp"))
+    TS_ASSERT(run.hasProperty("ScanType"))
+    TS_ASSERT(run.hasProperty("PixelSize"))
+    TS_ASSERT(run.hasProperty("ResolutionMode"))
+    TS_ASSERT(run.hasProperty("Ei"))
 
-    const auto sim = outputWS->run().getLogData("simulated_d20.TotalCount");
-    const auto spy = outputWS->run().getLogData("AcquisitionSpy.Time");
-    const auto sample = outputWS->run().getLogData("SampleSettings.SampleTemp");
+    const auto sim = run.getLogData("simulated_d20.TotalCount");
+    const auto spy = run.getLogData("AcquisitionSpy.Time");
+    const auto sample = run.getLogData("SampleSettings.SampleTemp");
+    const auto scanType = run.getLogData("ScanType");
+    const double pixelSize = run.getLogAsSingleValue("PixelSize");
+    const auto resMode = run.getLogData("ResolutionMode");
+    const auto ei = run.getLogAsSingleValue("Ei");
+
+    TS_ASSERT_EQUALS(scanType->value(), "NoScan")
+    TS_ASSERT_EQUALS(resMode->value(), "Nominal")
+    TS_ASSERT_DELTA(pixelSize, 0.05, 1E-10)
 
     TS_ASSERT_EQUALS(sim->size(), 1)
     TS_ASSERT_EQUALS(spy->size(), 1)
@@ -95,6 +116,7 @@ public:
     TS_ASSERT_EQUALS(spy->value(), "2017-May-15 14:36:18  240\n")
     TS_ASSERT_EQUALS(sample->value(), "2017-May-15 14:36:18  4.9681\n")
 
+    TS_ASSERT_DELTA(ei, 14.09, 0.01)
     TS_ASSERT_EQUALS(
         outputWS->run().getProperty("Detector.calibration_file")->value(),
         "none")
@@ -154,15 +176,18 @@ public:
       }
     }
 
-    TS_ASSERT(outputWS->run().hasProperty("Omega.Position"))
-    TS_ASSERT(outputWS->run().hasProperty("Detector.TotalCount"))
-    TS_ASSERT(outputWS->run().hasProperty("AcquisitionSpy.Time"))
-    TS_ASSERT(outputWS->run().hasProperty("SampleSettings.SampleTemp"))
-    TS_ASSERT(outputWS->run().hasProperty("MagneticField.field"))
-
-    const auto omega = outputWS->run().getLogData("Omega.Position");
-
+    const auto &run = outputWS->run();
+    TS_ASSERT(outputWS->run().hasProperty("omega.position"))
+    TS_ASSERT(outputWS->run().hasProperty("detector.totalcount"))
+    TS_ASSERT(outputWS->run().hasProperty("acquisitionspy.time"))
+    TS_ASSERT(outputWS->run().hasProperty("samplesettings.sampletemp"))
+    TS_ASSERT(outputWS->run().hasProperty("magneticfield.field"))
+    const auto omega = run.getLogData("omega.position");
     TS_ASSERT_EQUALS(omega->size(), 21)
+    const double steps = run.getLogAsSingleValue("ScanSteps");
+    const auto scanType = run.getLogData("ScanType");
+    TS_ASSERT_EQUALS(scanType->value(), "OtherScan")
+    TS_ASSERT_DELTA(steps, 21., 1E-10)
 
     const std::string omegaTimeSeriesValue =
         "2017-Feb-15 08:58:52  1\n2017-Feb-15 08:58:52.521547000  "
@@ -204,6 +229,60 @@ public:
     TS_ASSERT(outputWS->detectorInfo().isMonitor(0))
     TS_ASSERT(!outputWS->isHistogramData())
     TS_ASSERT(!outputWS->isDistribution())
+  }
+
+  void test_D2B_alignment() {
+    // Tests the D2B loading for a file from Cycle 1 in 04.2018
+    // This should have increased pixel size than previously and
+    // the corresponding IPF file should contain vertical and horizontal tube
+    // alignments.
+
+    LoadILLDiffraction alg;
+    alg.setChild(true);
+    alg.initialize();
+    TS_ASSERT_THROWS_NOTHING(alg.setPropertyValue("Filename", "535401.nxs"))
+    TS_ASSERT_THROWS_NOTHING(alg.setPropertyValue("OutputWorkspace", "__outWS"))
+    TS_ASSERT_THROWS_NOTHING(alg.execute())
+    TS_ASSERT(alg.isExecuted())
+    MatrixWorkspace_sptr outputWS = alg.getProperty("OutputWorkspace");
+    TS_ASSERT(outputWS)
+    const auto &run = outputWS->run();
+    TS_ASSERT(run.hasProperty("PixelHeight"))
+    TS_ASSERT(run.hasProperty("MaxHeight"))
+    TS_ASSERT_DELTA(run.getLogAsSingleValue("PixelHeight"), 0.00276, 1E-5)
+    TS_ASSERT_DELTA(run.getLogAsSingleValue("MaxHeight"), 0.19358, 1E-5)
+    const auto &detInfo = outputWS->detectorInfo();
+    const auto tube1CentreTime1 =
+        (detInfo.position({70, 0}) + detInfo.position({71, 0})) / 2.;
+    TS_ASSERT_DELTA(tube1CentreTime1.Y(), 0., 0.001)
+    double r, theta, phi;
+    tube1CentreTime1.getSpherical(r, theta, phi);
+    TS_ASSERT_DELTA(theta, 11.25, 0.001)
+    const auto tube1CentreTime2 =
+        (detInfo.position({70, 1}) + detInfo.position({71, 1})) / 2.;
+    TS_ASSERT_DELTA(tube1CentreTime2.Y(), 0., 0.001)
+    tube1CentreTime2.getSpherical(r, theta, phi);
+    TS_ASSERT_DELTA(theta, 11.2, 0.001)
+    const auto tube23CentreTime1 = detInfo.position({128 * 22 + 69, 0});
+    TS_ASSERT_DELTA(tube23CentreTime1.Y(), 0., 0.001)
+    tube23CentreTime1.getSpherical(r, theta, phi);
+    TS_ASSERT_DELTA(theta, 16.238, 0.001)
+    const auto tube23CentreTime2 = detInfo.position({128 * 22 + 69, 1});
+    TS_ASSERT_DELTA(tube23CentreTime2.Y(), 0., 0.001)
+    tube23CentreTime2.getSpherical(r, theta, phi);
+    TS_ASSERT_DELTA(theta, 16.288, 0.001)
+    const auto tube128CentreTime1 = (detInfo.position({128 * 127 + 67, 0}) +
+                                     detInfo.position({128 * 127 + 68, 0})) /
+                                    2.;
+    TS_ASSERT_DELTA(tube128CentreTime1.Y(), 0., 0.001)
+    tube128CentreTime1.getSpherical(r, theta, phi);
+    TS_ASSERT_DELTA(theta, 147.5, 0.001)
+    const auto tube128CentreTime2 = (detInfo.position({128 * 127 + 67, 1}) +
+                                     detInfo.position({128 * 127 + 68, 1})) /
+                                    2.;
+    TS_ASSERT_DELTA(tube128CentreTime2.Y(), 0., 0.001)
+    tube128CentreTime2.getSpherical(r, theta, phi);
+    TS_ASSERT_DELTA(theta, 147.55, 0.001)
   }
 
   void do_test_D2B_single_file(std::string dataType) {

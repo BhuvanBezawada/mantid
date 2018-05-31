@@ -17,6 +17,9 @@ endif()
 
 # Set our own compiler version flag from the cmake one and export it globally
 if ( CMAKE_COMPILER_IS_GNUCXX )
+  if ( NOT CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL CMAKE_C_COMPILER_VERSION )
+      message( FATAL_ERROR "gcc/g++ compiler version mismatch ( found gcc=${CMAKE_C_COMPILER_VERSION}, g++=${CMAKE_CXX_COMPILER_VERSION} ). Please ensure you use the same version of gcc and g++." )
+  endif()
   set( GCC_COMPILER_VERSION ${CMAKE_CXX_COMPILER_VERSION} CACHE INTERNAL "")
   message( STATUS "gcc version: ${GCC_COMPILER_VERSION}" )
   if ( GCC_COMPILER_VERSION VERSION_LESS "5.1.0" )
@@ -60,7 +63,7 @@ elseif ( "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" )
 endif()
 
 # Add some options for debug build to help the Zoom profiler
-add_compile_options ( $<$<CONFIG:Debug>:-fno-omit-frame-pointer> )
+add_compile_options ( $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:-fno-omit-frame-pointer> )
 
 option(WITH_ASAN "Enable address sanitizer" OFF)
 if(WITH_ASAN)

@@ -4,6 +4,7 @@
 #include "MantidAPI/MatrixWorkspaceMDIterator.h"
 #include "MantidAPI/NumericAxis.h"
 #include "MantidAPI/Run.h"
+#include "MantidAPI/Sample.h"
 #include "MantidAPI/SpectraAxis.h"
 #include "MantidAPI/SpectrumDetectorMapping.h"
 #include "MantidGeometry/Instrument.h"
@@ -20,6 +21,7 @@
 #include "MantidKernel/TimeSeriesProperty.h"
 #include "MantidKernel/make_unique.h"
 #include "MantidKernel/VectorHelper.h"
+#include "MantidParallel/Collectives.h"
 #include "MantidParallel/Communicator.h"
 #include "MantidTypes/SpectrumDefinition.h"
 
@@ -653,10 +655,6 @@ double MatrixWorkspace::getXMax() const {
 }
 
 void MatrixWorkspace::getXMinMax(double &xmin, double &xmax) const {
-  if (m_indexInfo->size() != m_indexInfo->globalSize())
-    throw std::runtime_error(
-        "MatrixWorkspace: Parallel support for XMin and XMax not implemented.");
-
   // set to crazy values to start
   xmin = std::numeric_limits<double>::max();
   xmax = -1.0 * xmin;
@@ -674,6 +672,14 @@ void MatrixWorkspace::getXMinMax(double &xmin, double &xmax) const {
       if (xback > xmax)
         xmax = xback;
     }
+  }
+  if (m_indexInfo->size() != m_indexInfo->globalSize()) {
+    auto &comm = m_indexInfo->communicator();
+    std::vector<double> extrema(comm.size());
+    Parallel::all_gather(comm, xmin, extrema);
+    xmin = *std::min_element(extrema.begin(), extrema.end());
+    Parallel::all_gather(comm, xmax, extrema);
+    xmax = *std::max_element(extrema.begin(), extrema.end());
   }
 }
 
@@ -1460,7 +1466,7 @@ MatrixWorkspace::getDimensionWithId(std::string id) const {
  * @param function :: implicit function to limit range
  * @return MatrixWorkspaceMDIterator vector
  */
-std::vector<IMDIterator *> MatrixWorkspace::createIterators(
+std::vector<std::unique_ptr<IMDIterator>> MatrixWorkspace::createIterators(
     size_t suggestedNumCores,
     Mantid::Geometry::MDImplicitFunction *function) const {
   // Find the right number of cores to use
@@ -1474,13 +1480,14 @@ std::vector<IMDIterator *> MatrixWorkspace::createIterators(
     numCores = 1;
 
   // Create one iterator per core, splitting evenly amongst spectra
-  std::vector<IMDIterator *> out;
+  std::vector<std::unique_ptr<IMDIterator>> out;
   for (size_t i = 0; i < numCores; i++) {
     size_t begin = (i * numElements) / numCores;
     size_t end = ((i + 1) * numElements) / numCores;
     if (end > numElements)
       end = numElements;
-    out.push_back(new MatrixWorkspaceMDIterator(this, function, begin, end));
+    out.push_back(Kernel::make_unique<MatrixWorkspaceMDIterator>(this, function,
+                                                                 begin, end));
   }
   return out;
 }
@@ -1618,6 +1625,11 @@ void MatrixWorkspace::clearMDMasking() {
 Mantid::Kernel::SpecialCoordinateSystem
 MatrixWorkspace::getSpecialCoordinateSystem() const {
   return Mantid::Kernel::None;
+}
+
+// Check if this class has an oriented lattice on a sample object
+bool MatrixWorkspace::hasOrientedLattice() const {
+  return Mantid::API::ExperimentInfo::sample().hasOrientedLattice();
 }
 
 /**
@@ -1989,8 +2001,8 @@ void MatrixWorkspace::rebuildDetectorIDGroupings() {
   const auto &allDetIDs = detInfo.detectorIDs();
   const auto &specDefs = m_indexInfo->spectrumDefinitions();
   const auto size = static_cast<int64_t>(m_indexInfo->size());
-  std::atomic<bool> parallelException{false};
-  std::string error;
+  enum class ErrorCode { None, InvalidDetIndex, InvalidTimeIndex };
+  std::atomic<ErrorCode> errorValue(ErrorCode::None);
 #pragma omp parallel for
   for (int64_t i = 0; i < size; ++i) {
     auto &spec = getSpectrum(i);
@@ -2002,23 +2014,29 @@ void MatrixWorkspace::rebuildDetectorIDGroupings() {
       const size_t detIndex = index.first;
       const size_t timeIndex = index.second;
       if (detIndex >= allDetIDs.size()) {
-        parallelException = true;
-        error = "MatrixWorkspace: SpectrumDefinition contains an out-of-range "
-                "detector index, i.e., the spectrum definition does not match "
-                "the instrument in the workspace.";
+        errorValue = ErrorCode::InvalidDetIndex;
       } else if (timeIndex >= detInfo.scanCount(detIndex)) {
-        parallelException = true;
-        error = "MatrixWorkspace: SpectrumDefinition contains an out-of-range "
-                "time index for a detector, i.e., the spectrum definition does "
-                "not match the instrument in the workspace.";
+        errorValue = ErrorCode::InvalidTimeIndex;
       } else {
         detIDs.insert(allDetIDs[detIndex]);
       }
     }
     spec.setDetectorIDs(std::move(detIDs));
   }
-  if (parallelException)
-    throw std::invalid_argument(error);
+  switch (errorValue) {
+  case ErrorCode::InvalidDetIndex:
+    throw std::invalid_argument(
+        "MatrixWorkspace: SpectrumDefinition contains an out-of-range "
+        "detector index, i.e., the spectrum definition does not match "
+        "the instrument in the workspace.");
+  case ErrorCode::InvalidTimeIndex:
+    throw std::invalid_argument(
+        "MatrixWorkspace: SpectrumDefinition contains an out-of-range "
+        "time index for a detector, i.e., the spectrum definition does "
+        "not match the instrument in the workspace.");
+  case ErrorCode::None:
+    ; // nothing to do
+  }
 }
 
 } // namespace API

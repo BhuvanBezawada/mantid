@@ -1,7 +1,9 @@
 #include "EnggDiffFittingViewQtWidget.h"
 #include "MantidAPI/FunctionFactory.h"
 #include "MantidAPI/IPeakFunction.h"
+#include "MantidKernel/make_unique.h"
 #include "MantidQtWidgets/Common/AlgorithmInputHistory.h"
+#include "EnggDiffFittingModel.h"
 #include "EnggDiffFittingPresenter.h"
 #include "MantidQtWidgets/LegacyQwt/PeakPicker.h"
 
@@ -11,6 +13,7 @@
 #include <sstream>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/make_shared.hpp>
 
 #include <Poco/Path.h>
 
@@ -37,9 +40,6 @@ const std::string EnggDiffFittingViewQtWidget::g_peaksListExt =
     "(*.csv *.txt);;"
     "Other extensions/all files (*)";
 
-bool EnggDiffFittingViewQtWidget::m_fittingMutliRunMode = false;
-bool EnggDiffFittingViewQtWidget::m_fittingSingleRunMode = false;
-
 std::vector<std::string> EnggDiffFittingViewQtWidget::m_fitting_runno_dir_vec;
 
 EnggDiffFittingViewQtWidget::EnggDiffFittingViewQtWidget(
@@ -50,11 +50,11 @@ EnggDiffFittingViewQtWidget::EnggDiffFittingViewQtWidget(
     boost::shared_ptr<IEnggDiffractionPythonRunner> mainPythonRunner)
     : IEnggDiffFittingView(), m_fittedDataVector(), m_mainMsgProvider(mainMsg),
       m_mainSettings(mainSettings), m_mainPythonRunner(mainPythonRunner),
-      m_presenter(nullptr) {
+      m_presenter(boost::make_shared<EnggDiffFittingPresenter>(
+          this, Mantid::Kernel::make_unique<EnggDiffFittingModel>(), mainCalib,
+          mainParam)) {
 
   initLayout();
-
-  m_presenter.reset(new EnggDiffFittingPresenter(this, mainCalib, mainParam));
   m_presenter->notify(IEnggDiffFittingPresenter::Start);
 }
 
@@ -83,21 +83,8 @@ void EnggDiffFittingViewQtWidget::doSetup() {
   connect(m_ui.pushButton_fitting_browse_run_num, SIGNAL(released()), this,
           SLOT(browseFitFocusedRun()));
 
-  connect(m_ui.lineEdit_pushButton_run_num, SIGNAL(textEdited(const QString &)),
-          this, SLOT(resetFittingMode()));
-
   connect(m_ui.lineEdit_pushButton_run_num, SIGNAL(returnPressed()), this,
           SLOT(loadClicked()));
-
-  connect(this, SIGNAL(getBanks()), this, SLOT(FittingRunNo()));
-
-  connect(this, SIGNAL(setBank()), this, SLOT(listViewFittingRun()));
-
-  connect(m_ui.listWidget_fitting_run_num, SIGNAL(itemSelectionChanged()), this,
-          SLOT(listViewFittingRun()));
-
-  connect(m_ui.comboBox_bank, SIGNAL(currentIndexChanged(int)), this,
-          SLOT(setBankDir(int)));
 
   connect(m_ui.pushButton_fitting_browse_peaks, SIGNAL(released()), this,
           SLOT(browseClicked()));
@@ -127,8 +114,15 @@ void EnggDiffFittingViewQtWidget::doSetup() {
           SIGNAL(itemClicked(QListWidgetItem *)), this,
           SLOT(listWidget_fitting_run_num_clicked(QListWidgetItem *)));
 
+  connect(m_ui.checkBox_plotFittedPeaks, SIGNAL(stateChanged(int)), this,
+          SLOT(plotFittedPeaksStateChanged()));
+
   // Tool-tip button
   connect(m_ui.pushButton_tooltip, SIGNAL(released()), SLOT(showToolTipHelp()));
+
+  // Remove run button
+  connect(m_ui.pushButton_remove_run, SIGNAL(released()), this,
+          SLOT(removeRunClicked()));
 
   m_ui.dataPlot->setCanvasBackground(Qt::white);
   m_ui.dataPlot->setAxisTitle(QwtPlot::xBottom, "d-Spacing (A)");
@@ -158,7 +152,6 @@ void EnggDiffFittingViewQtWidget::readSettings() {
   // user params
   m_ui.lineEdit_pushButton_run_num->setText(
       qs.value("user-params-fitting-focused-file", "").toString());
-  m_ui.comboBox_bank->setCurrentIndex(0);
   m_ui.lineEdit_fitting_peaks->setText(
       qs.value("user-params-fitting-peaks-to-fit", "").toString());
 
@@ -186,7 +179,6 @@ void EnggDiffFittingViewQtWidget::enable(bool enable) {
   m_ui.pushButton_fit->setEnabled(enable);
   m_ui.pushButton_clear_peak_list->setEnabled(enable);
   m_ui.pushButton_save_peak_list->setEnabled(enable);
-  m_ui.comboBox_bank->setEnabled(enable);
   m_ui.groupBox_fititng_preview->setEnabled(enable);
 }
 
@@ -235,10 +227,6 @@ void EnggDiffFittingViewQtWidget::fitAllClicked() {
   m_presenter->notify(IEnggDiffFittingPresenter::FitAllPeaks);
 }
 
-void EnggDiffFittingViewQtWidget::FittingRunNo() {
-  m_presenter->notify(IEnggDiffFittingPresenter::FittingRunNo);
-}
-
 void EnggDiffFittingViewQtWidget::addClicked() {
   m_presenter->notify(IEnggDiffFittingPresenter::addPeaks);
 }
@@ -251,30 +239,8 @@ void EnggDiffFittingViewQtWidget::saveClicked() {
   m_presenter->notify(IEnggDiffFittingPresenter::savePeaks);
 }
 
-void EnggDiffFittingViewQtWidget::setBankDir(int idx) {
-
-  const size_t runNoDirSize = m_fitting_runno_dir_vec.size();
-  // idx must correspond to an element and the vector cant be empty
-  if (size_t(idx) < runNoDirSize && runNoDirSize > 0) {
-
-    std::string bankDir = m_fitting_runno_dir_vec[idx];
-    Poco::Path fpath(bankDir);
-
-    setFittingRunNo(bankDir);
-  }
-}
-
-void EnggDiffFittingViewQtWidget::listViewFittingRun() {
-
-  if (m_fittingMutliRunMode) {
-    auto listView = m_ui.listWidget_fitting_run_num;
-    auto currentRow = listView->currentRow();
-    auto item = listView->item(currentRow);
-    QString itemText = item->text();
-
-    setFittingRunNo(itemText.toStdString());
-    FittingRunNo();
-  }
+void EnggDiffFittingViewQtWidget::plotFittedPeaksStateChanged() {
+  m_presenter->notify(IEnggDiffFittingPresenter::updatePlotFittedPeaks);
 }
 
 void EnggDiffFittingViewQtWidget::listWidget_fitting_run_num_clicked(
@@ -283,11 +249,8 @@ void EnggDiffFittingViewQtWidget::listWidget_fitting_run_num_clicked(
   m_presenter->notify(IEnggDiffFittingPresenter::selectRun);
 }
 
-void EnggDiffFittingViewQtWidget::resetFittingMode() {
-  // resets the global variable so the list view widgets
-  // adds the run number to for single runs too
-  m_fittingMutliRunMode = false;
-  m_fittingSingleRunMode = false;
+void EnggDiffFittingViewQtWidget::removeRunClicked() {
+  m_presenter->notify(IEnggDiffFittingPresenter::removeRun);
 }
 
 void EnggDiffFittingViewQtWidget::resetCanvas() {
@@ -309,12 +272,13 @@ void EnggDiffFittingViewQtWidget::resetCanvas() {
 
 void EnggDiffFittingViewQtWidget::setDataVector(
     std::vector<boost::shared_ptr<QwtData>> &data, bool focused,
-    bool plotSinglePeaks) {
+    bool plotSinglePeaks, const std::string &xAxisLabel) {
 
   if (!plotSinglePeaks) {
     // clear vector and detach curves to avoid plot crash
     resetCanvas();
   }
+  m_ui.dataPlot->setAxisTitle(QwtPlot::xBottom, xAxisLabel.c_str());
 
   // when only plotting focused workspace
   if (focused) {
@@ -457,7 +421,6 @@ EnggDiffFittingViewQtWidget::getSaveFile(const std::string &prevPath) {
 }
 
 void EnggDiffFittingViewQtWidget::browseFitFocusedRun() {
-  resetFittingMode();
   QString prevPath = QString::fromStdString(focusingDir());
   if (prevPath.isEmpty()) {
     prevPath =
@@ -474,29 +437,20 @@ void EnggDiffFittingViewQtWidget::browseFitFocusedRun() {
     return;
   }
 
-  // MantidQt::API::AlgorithmInputHistory::Instance().setPreviousDirectory(paths[0]);
-  setFittingRunNo(paths.join(",").toStdString());
-  // getBanks();
+  setFocusedFileNames(paths.join(",").toStdString());
 }
 
-void EnggDiffFittingViewQtWidget::setFittingRunNo(const std::string &path) {
-  m_ui.lineEdit_pushButton_run_num->setText(QString::fromStdString(path));
+void EnggDiffFittingViewQtWidget::setFocusedFileNames(
+    const std::string &paths) {
+  m_ui.lineEdit_pushButton_run_num->setText(QString::fromStdString(paths));
 }
 
-std::string EnggDiffFittingViewQtWidget::getFittingRunNo() const {
+std::string EnggDiffFittingViewQtWidget::getFocusedFileNames() const {
   return m_ui.lineEdit_pushButton_run_num->text().toStdString();
 }
 
 void EnggDiffFittingViewQtWidget::enableFitAllButton(bool enable) const {
   m_ui.pushButton_fit_all->setEnabled(enable);
-}
-
-void EnggDiffFittingViewQtWidget::clearFittingComboBox() const {
-  m_ui.comboBox_bank->clear();
-}
-
-void EnggDiffFittingViewQtWidget::enableFittingComboBox(bool enable) const {
-  m_ui.comboBox_bank->setEnabled(enable);
 }
 
 void EnggDiffFittingViewQtWidget::clearFittingListWidget() const {
@@ -511,9 +465,25 @@ int EnggDiffFittingViewQtWidget::getFittingListWidgetCurrentRow() const {
   return m_ui.listWidget_fitting_run_num->currentRow();
 }
 
-std::string
+boost::optional<std::string>
 EnggDiffFittingViewQtWidget::getFittingListWidgetCurrentValue() const {
-  return m_ui.listWidget_fitting_run_num->currentItem()->text().toStdString();
+  if (listWidgetHasSelectedRow()) {
+    return m_ui.listWidget_fitting_run_num->currentItem()->text().toStdString();
+  }
+  return boost::none;
+}
+
+bool EnggDiffFittingViewQtWidget::listWidgetHasSelectedRow() const {
+  return m_ui.listWidget_fitting_run_num->selectedItems().size() != 0;
+}
+
+void EnggDiffFittingViewQtWidget::updateFittingListWidget(
+    const std::vector<std::string> &rows) {
+  clearFittingListWidget();
+
+  for (const auto &rowLabel : rows) {
+    this->addRunNoItem(rowLabel);
+  }
 }
 
 void EnggDiffFittingViewQtWidget::setFittingListWidgetCurrentRow(
@@ -521,8 +491,8 @@ void EnggDiffFittingViewQtWidget::setFittingListWidgetCurrentRow(
   m_ui.listWidget_fitting_run_num->setCurrentRow(idx);
 }
 
-int EnggDiffFittingViewQtWidget::getFittingComboIdx(std::string bank) const {
-  return m_ui.comboBox_bank->findText(QString::fromStdString(bank));
+bool EnggDiffFittingViewQtWidget::plotFittedPeaksEnabled() const {
+  return m_ui.checkBox_plotFittedPeaks->isChecked();
 }
 
 void EnggDiffFittingViewQtWidget::plotSeparateWindow() {
@@ -563,7 +533,7 @@ void EnggDiffFittingViewQtWidget::showToolTipHelp() {
   QCoreApplication::sendEvent(m_ui.pushButton_tooltip, toolTipEvent);
 }
 
-std::string EnggDiffFittingViewQtWidget::fittingPeaksData() const {
+std::string EnggDiffFittingViewQtWidget::getExpectedPeaksInput() const {
 
   return m_ui.lineEdit_fitting_peaks->text().toStdString();
 }
@@ -571,17 +541,6 @@ std::string EnggDiffFittingViewQtWidget::fittingPeaksData() const {
 void EnggDiffFittingViewQtWidget::setPeakList(
     const std::string &peakList) const {
   m_ui.lineEdit_fitting_peaks->setText(QString::fromStdString(peakList));
-}
-
-void EnggDiffFittingViewQtWidget::setBankEmit() { emit setBank(); }
-
-void EnggDiffFittingViewQtWidget::setBankIdComboBox(int idx) {
-  QComboBox *bankName = m_ui.comboBox_bank;
-  bankName->setCurrentIndex(idx);
-}
-
-void EnggDiffFittingViewQtWidget::addBankItem(std::string bankID) {
-  m_ui.comboBox_bank->addItem(QString::fromStdString(bankID));
 }
 
 void EnggDiffFittingViewQtWidget::addRunNoItem(std::string runNo) {
@@ -597,22 +556,6 @@ void EnggDiffFittingViewQtWidget::setFittingRunNumVec(
   // holds all the directories required
   m_fitting_runno_dir_vec.clear();
   m_fitting_runno_dir_vec = assignVec;
-}
-
-bool EnggDiffFittingViewQtWidget::getFittingSingleRunMode() {
-  return m_fittingSingleRunMode;
-}
-
-void EnggDiffFittingViewQtWidget::setFittingSingleRunMode(bool mode) {
-  m_fittingSingleRunMode = mode;
-}
-
-void EnggDiffFittingViewQtWidget::setFittingMultiRunMode(bool mode) {
-  m_fittingMutliRunMode = mode;
-}
-
-bool EnggDiffFittingViewQtWidget::getFittingMultiRunMode() {
-  return m_fittingMutliRunMode;
 }
 
 void EnggDiffFittingViewQtWidget::setPeakPick() {

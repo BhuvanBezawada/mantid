@@ -1,7 +1,7 @@
 #ifndef MANTID_DATAHANDLING_LOADPARAMETERFILE_H_
 #define MANTID_DATAHANDLING_LOADPARAMETERFILE_H_
 
-#include "MantidAPI/ParallelAlgorithm.h"
+#include "MantidAPI/DistributedAlgorithm.h"
 
 /// @cond Exclude from doxygen documentation
 namespace Poco {
@@ -18,7 +18,7 @@ class V3D;
 namespace Geometry {
 class CompAssembly;
 class Component;
-class Object;
+class CSGObject;
 class ObjComponent;
 class Instrument;
 }
@@ -62,7 +62,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 File change history is stored at: <https://github.com/mantidproject/mantid>
 */
-class DLLExport LoadParameterFile : public API::ParallelAlgorithm {
+class DLLExport LoadParameterFile : public API::DistributedAlgorithm {
 public:
   /// Algorithm's name for identification overriding a virtual method
   const std::string name() const override { return "LoadParameterFile"; };
@@ -76,6 +76,9 @@ public:
 
   /// Algorithm's version for identification overriding a virtual method
   int version() const override { return 1; };
+  const std::vector<std::string> seeAlso() const override {
+    return {"SaveParameterFile"};
+  }
   /// Algorithm's category for identification overriding a virtual method
   const std::string category() const override {
     return "DataHandling\\Instrument";

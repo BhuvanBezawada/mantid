@@ -451,7 +451,7 @@ add_custom_command ( OUTPUT ${SIP_SRC_AUTO}
                           -I ${PYQT4_SIP_DIR} ${MANTIDQTPYTHON_SIP_INCLUDES}  ${PYQT4_SIP_FLAGS}
                           -c ${CMAKE_CURRENT_BINARY_DIR} -j1 -w -o
                           ${SIP_SPEC}
-                     DEPENDS src/qti.sip ${SIP_HDRS}
+                     DEPENDS src/qti.sip ${SIP_HDRS} ../qt/python/mantidqtpython/mantidqtpython_def.sip
                      COMMENT "Generating python bindings using sip"
 )
 
@@ -690,6 +690,9 @@ find_package ( QScintillaQt4 REQUIRED )
 add_definitions ( -DSCRIPTING_MUPARSER )
 add_definitions ( -DSCRIPTING_PYTHON )
 add_definitions ( -DQSCINTILLA_DLL )     # Will only have an effect on Windows (as is desired)
+if ( MSVC )
+  add_definitions ( -DQ_COMPILER_INITIALIZER_LISTS )
+endif ()
 
 ###########################################################################
 # Application icon files
@@ -737,7 +740,6 @@ copy_files_to_dir ( "${PY_FILES}"
 set( MTDPLOTPY_FILES
   __init__.py
   proxies.py
-  pyplot.py
   qtiplot.py
 )
 copy_files_to_dir ( "${MTDPLOTPY_FILES}"
@@ -805,7 +807,8 @@ target_link_libraries ( MantidPlot LINK_PRIVATE
   Qt4::Qscintilla
   ${PYTHON_LIBRARIES}
   ${ZLIB_LIBRARIES}
-  ${OPENGL_LIBRARIES}
+  ${OPENGL_glu_LIBRARY}
+  ${OPENGL_gl_LIBRARY}
 )
 
 if(MAKE_VATES)
@@ -822,6 +825,13 @@ add_dependencies( MantidPlot mantidqtpython CompilePyUI )
 
 if (OSX_VERSION VERSION_GREATER 10.8)
   set_target_properties(MantidPlot PROPERTIES INSTALL_RPATH "@executable_path;@executable_path/../Libraries")
+elseif ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
+  if(MAKE_VATES)
+    set_target_properties(MantidPlot PROPERTIES
+                          INSTALL_RPATH "\$ORIGIN/../${LIB_DIR};\$ORIGIN/../${LIB_DIR}/paraview-${ParaView_VERSION_MAJOR}.${ParaView_VERSION_MINOR}")
+  else()
+    set_target_properties(MantidPlot PROPERTIES INSTALL_RPATH "\$ORIGIN/../${LIB_DIR}")
+  endif()
 endif ()
 
 set_target_properties ( MantidPlot PROPERTIES FOLDER "Qt4" )
@@ -883,7 +893,6 @@ set ( MANTIDPLOT_TEST_PY_FILES
     MantidPlotMdiSubWindowTest.py
     MantidPlotTiledWindowTest.py
     MantidPlotInputArgsCheck.py
-    MantidPlotPyplotGeneralTest.py
 )
 
 if ( MAKE_VATES )

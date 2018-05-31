@@ -11,7 +11,7 @@
 #include "MantidKernel/UnitFactory.h"
 #include "MantidGeometry/Instrument.h"
 #include "MantidGeometry/Instrument/Detector.h"
-#include "MantidGeometry/Objects/Object.h"
+#include "MantidGeometry/Objects/CSGObject.h"
 #include "MantidIndexing/IndexInfo.h"
 #include "MantidHistogramData/LinearGenerator.h"
 
@@ -42,14 +42,14 @@ public:
     // Define a source and sample position
     // Define a source component
     ObjComponent *source =
-        new ObjComponent("moderator", Object_sptr(), testInst.get());
+        new ObjComponent("moderator", IObject_sptr(), testInst.get());
     source->setPos(V3D(0.0, 0.0, -95.0));
     testInst->add(source);
     testInst->markAsSource(source);
 
     // Define a sample as a simple sphere
     ObjComponent *sample =
-        new ObjComponent("samplePos", Object_sptr(), testInst.get());
+        new ObjComponent("samplePos", IObject_sptr(), testInst.get());
     testInst->setPos(0.0, 0.0, 0.0);
     testInst->add(sample);
     testInst->markAsSamplePos(sample);
@@ -97,15 +97,15 @@ public:
     TS_ASSERT_THROWS_NOTHING(
         result = boost::dynamic_pointer_cast<Mantid::API::MatrixWorkspace>(
             Mantid::API::AnalysisDataService::Instance().retrieve(outputWS)));
-    TS_ASSERT_DELTA(result->readY(0).front(), 0.7423, 0.0001);
-    TS_ASSERT_DELTA(result->readY(0)[1], 0.7244, 0.0001);
-    TS_ASSERT_DELTA(result->readY(0).back(), 0.5964, 0.0001);
-    TS_ASSERT_DELTA(result->readY(1).front(), 0.7033, 0.0001);
-    TS_ASSERT_DELTA(result->readY(1)[5], 0.5939, 0.0001);
-    TS_ASSERT_DELTA(result->readY(1).back(), 0.5192, 0.0001);
-    TS_ASSERT_DELTA(result->readY(2).front(), 0.7337, 0.0001);
-    TS_ASSERT_DELTA(result->readY(2)[5], 0.6404, 0.0001);
-    TS_ASSERT_DELTA(result->readY(2).back(), 0.5741, 0.0001);
+    TS_ASSERT_DELTA(result->y(0).front(), 0.7423, 0.0001);
+    TS_ASSERT_DELTA(result->y(0)[1], 0.7244, 0.0001);
+    TS_ASSERT_DELTA(result->y(0).back(), 0.5964, 0.0001);
+    TS_ASSERT_DELTA(result->y(1).front(), 0.7033, 0.0001);
+    TS_ASSERT_DELTA(result->y(1)[5], 0.5939, 0.0001);
+    TS_ASSERT_DELTA(result->y(1).back(), 0.5192, 0.0001);
+    TS_ASSERT_DELTA(result->y(2).front(), 0.7337, 0.0001);
+    TS_ASSERT_DELTA(result->y(2)[5], 0.6404, 0.0001);
+    TS_ASSERT_DELTA(result->y(2).back(), 0.5741, 0.0001);
 
     Mantid::API::AnalysisDataService::Instance().remove(outputWS);
   }

@@ -3,6 +3,7 @@ set ( SRC_FILES
 	src/AlgorithmInputHistory.cpp
 	src/AlgorithmPropertiesWidget.cpp
 	src/AlgorithmRunner.cpp
+	src/AlternateCSPythonLexer.cpp
 	src/BatchAlgorithmRunner.cpp
 	src/BoolPropertyWidget.cpp
 	src/DropEventHelper.cpp
@@ -53,15 +54,19 @@ set ( SRC_FILES
 	src/CatalogSelector.cpp
 	src/CheckboxHeader.cpp
 	src/DataProcessorUI/AbstractTreeModel.cpp
+	src/DataProcessorUI/TreeData.cpp
 	src/DataProcessorUI/GenerateNotebook.cpp
 	src/DataProcessorUI/OneLevelTreeManager.cpp
+        src/DataProcessorUI/OptionsMap.cpp
 	src/DataProcessorUI/PostprocessingAlgorithm.cpp
 	src/DataProcessorUI/PreprocessingAlgorithm.cpp
 	src/DataProcessorUI/PreprocessMap.cpp
 	src/DataProcessorUI/ProcessingAlgorithm.cpp
 	src/DataProcessorUI/ProcessingAlgorithmBase.cpp
+	src/DataProcessorUI/TreeData.cpp
 	src/DataProcessorUI/TwoLevelTreeManager.cpp
 	src/DataProcessorUI/WhiteList.cpp
+        src/DataProcessorUI/WorkspaceNameUtils.cpp
     src/DataProcessorUI/PostprocessingStep.cpp
 	src/DataProcessorUI/GenericDataProcessorPresenter.cpp
     src/DataProcessorUI/Column.cpp
@@ -73,15 +78,34 @@ set ( SRC_FILES
 	src/DataProcessorUI/QDataProcessorWidget.cpp
 	src/DataProcessorUI/QtDataProcessorOptionsDialog.cpp
 	src/DataProcessorUI/VectorString.cpp
+  src/Batch/RowLocation.cpp
+  src/Batch/RowLocationAdapter.cpp
+  src/Batch/RowPredicate.cpp
+  src/Batch/Row.cpp
+  src/Batch/Cell.cpp
+  src/Batch/CellStandardItem.cpp
+  src/Batch/ExtractSubtrees.cpp
+  src/Batch/FindSubtreeRoots.cpp
+  src/Batch/JobTreeView.cpp
+  src/Batch/JobTreeViewSignalAdapter.cpp
+  src/Batch/QtStandardItemTreeAdapter.cpp
+  src/Batch/FilteredTreeModel.cpp
+  src/Batch/QtBasicNavigation.cpp
+  src/Batch/QtTreeCursorNavigation.cpp
+  src/Batch/CellDelegate.cpp
+  src/Batch/BuildSubtreeItems.cpp
 	src/DataSelector.cpp
 	src/DiagResults.cpp
 	src/DoubleSpinBox.cpp
 	src/FindDialog.cpp
+        src/FindFilesThreadPoolManager.cpp
+        src/FindFilesWorker.cpp
 	src/FindReplaceDialog.cpp
 	src/FitOptionsBrowser.cpp
 	src/FitPropertyBrowser.cpp
 	src/FunctionBrowser.cpp
 	src/HintingLineEdit.cpp
+	src/IndirectFitPropertyBrowser.cpp
 	src/IndirectInstrumentConfig.cpp
 	src/InputController.cpp
 	src/InstrumentSelector.cpp
@@ -89,6 +113,7 @@ set ( SRC_FILES
 	src/LogValueSelector.cpp
 	src/MWDiag.cpp
 	src/MantidHelpWindow.cpp
+	src/MantidTreeModel.cpp
 	src/MantidTreeWidget.cpp
 	src/MantidTreeWidgetItem.cpp
 	src/MantidWSIndexDialog.cpp
@@ -113,8 +138,9 @@ set ( SRC_FILES
 	src/TrackedAction.cpp
 	src/UserFunctionDialog.cpp
 	src/WorkspacePresenter/ADSAdapter.cpp
-	src/WorkspacePresenter/QWorkspaceDockView.cpp
 	src/WorkspacePresenter/WorkspacePresenter.cpp
+    src/WorkspacePresenter/WorkspaceTreeWidget.cpp
+	src/WorkspacePresenter/WorkspaceTreeWidgetSimple.cpp
 	src/WorkspaceSelector.cpp
 	src/pqHelpWindow.cxx
 	src/pythonCalc.cpp
@@ -167,6 +193,8 @@ set ( MOC_FILES
   inc/MantidQtWidgets/Common/SelectionNotificationService.h
   inc/MantidQtWidgets/Common/AlgorithmSelectorWidget.h
   inc/MantidQtWidgets/Common/CheckboxHeader.h
+  inc/MantidQtWidgets/Common/Batch/JobTreeView.h
+  inc/MantidQtWidgets/Common/Batch/JobTreeViewSignalAdapter.h
   inc/MantidQtWidgets/Common/DataProcessorUI/AbstractTreeModel.h
   inc/MantidQtWidgets/Common/DataProcessorUI/QtCommandAdapter.h
   inc/MantidQtWidgets/Common/DataProcessorUI/GenericDataProcessorPresenter.h
@@ -189,9 +217,11 @@ set ( MOC_FILES
   inc/MantidQtWidgets/Common/CatalogSearch.h
   inc/MantidQtWidgets/Common/CatalogSelector.h
   inc/MantidQtWidgets/Common/InstrumentSelector.h
+  inc/MantidQtWidgets/Common/IndirectFitPropertyBrowser.h
   inc/MantidQtWidgets/Common/IndirectInstrumentConfig.h
   inc/MantidQtWidgets/Common/InputController.h
   inc/MantidQtWidgets/Common/MantidWSIndexDialog.h
+  inc/MantidQtWidgets/Common/MantidTreeModel.h
   inc/MantidQtWidgets/Common/MantidTreeWidget.h
   inc/MantidQtWidgets/Common/MantidHelpWindow.h
   inc/MantidQtWidgets/Common/MessageDisplay.h
@@ -218,7 +248,11 @@ set ( MOC_FILES
   inc/MantidQtWidgets/Common/WorkspaceSelector.h
   inc/MantidQtWidgets/Common/LineEditWithClear.h
   inc/MantidQtWidgets/Common/LogValueSelector.h
-  inc/MantidQtWidgets/Common/WorkspacePresenter/QWorkspaceDockView.h
+  inc/MantidQtWidgets/Common/FindFilesThreadPoolManager.h
+  inc/MantidQtWidgets/Common/FindFilesThreadPoolManagerMockObjects.h
+  inc/MantidQtWidgets/Common/FindFilesWorker.h
+  inc/MantidQtWidgets/Common/WorkspacePresenter/WorkspaceTreeWidget.h
+  inc/MantidQtWidgets/Common/WorkspacePresenter/WorkspaceTreeWidgetSimple.h
   inc/MantidQtWidgets/Common/QtPropertyBrowser/ButtonEditorFactory.h
   inc/MantidQtWidgets/Common/QtPropertyBrowser/DoubleEditorFactory.h
   inc/MantidQtWidgets/Common/QtPropertyBrowser/DoubleDialogEditor.h
@@ -243,9 +277,11 @@ set ( INC_FILES
 	${MOC_FILES}
 	inc/MantidQtWidgets/Common/AlgorithmInputHistory.h
 	inc/MantidQtWidgets/Common/AlgorithmRunner.h
+	inc/MantidQtWidgets/Common/AlternateCSPythonLexer.h
 	inc/MantidQtWidgets/Common/BatchAlgorithmRunner.h
+  inc/MantidQtWidgets/Common/Configurable.h
 	inc/MantidQtWidgets/Common/DllOption.h
-        inc/MantidQtWidgets/Common/DropEventHelper.h
+	inc/MantidQtWidgets/Common/DropEventHelper.h
   inc/MantidQtWidgets/Common/FileDialogHandler.h
 	inc/MantidQtWidgets/Common/FlowLayout.h
 	inc/MantidQtWidgets/Common/GraphOptions.h
@@ -266,6 +302,7 @@ set ( INC_FILES
 	inc/MantidQtWidgets/Common/PythonSystemHeader.h
 	inc/MantidQtWidgets/Common/PythonThreading.h
 	inc/MantidQtWidgets/Common/QScienceSpinBox.h
+	inc/MantidQtWidgets/Common/QStringUtils.h
 	inc/MantidQtWidgets/Common/ScriptRepositoryView.h
 	inc/MantidQtWidgets/Common/SelectionNotificationService.h
 	inc/MantidQtWidgets/Common/SignalBlocker.h
@@ -296,6 +333,8 @@ set ( INC_FILES
 	inc/MantidQtWidgets/Common/DataProcessorUI/OneLevelTreeManager.h
 	inc/MantidQtWidgets/Common/DataProcessorUI/OpenTableCommand.h
 	inc/MantidQtWidgets/Common/DataProcessorUI/OptionsCommand.h
+        inc/MantidQtWidgets/Common/DataProcessorUI/OptionsMap.h
+        inc/MantidQtWidgets/Common/DataProcessorUI/OptionsQMap.h
 	inc/MantidQtWidgets/Common/DataProcessorUI/PasteSelectedCommand.h
 	inc/MantidQtWidgets/Common/DataProcessorUI/PauseCommand.h
 	inc/MantidQtWidgets/Common/DataProcessorUI/PlotGroupCommand.h
@@ -317,6 +356,7 @@ set ( INC_FILES
 	inc/MantidQtWidgets/Common/DataProcessorUI/DataProcessorView.h
 	inc/MantidQtWidgets/Common/DataProcessorUI/WhiteList.h
 	inc/MantidQtWidgets/Common/DataProcessorUI/WorkspaceCommand.h
+        inc/MantidQtWidgets/Common/DataProcessorUI/WorkspaceNameUtils.h
 	inc/MantidQtWidgets/Common/DataProcessorUI/GenericDataProcessorPresenterFactory.h
 	inc/MantidQtWidgets/Common/ParseKeyValueString.h
 	inc/MantidQtWidgets/Common/ParseNumerics.h
@@ -361,7 +401,24 @@ set ( INC_FILES
   inc/MantidQtWidgets/Common/QtPropertyBrowser/qtpropertybrowserutils_p.h
   inc/MantidQtWidgets/Common/QtPropertyBrowser/qttreepropertybrowser.h
   inc/MantidQtWidgets/Common/QtPropertyBrowser/qtvariantproperty.h
-
+  inc/MantidQtWidgets/Common/FindFilesThreadPoolManager.h
+  inc/MantidQtWidgets/Common/FindFilesThreadPoolManagerMockObjects.h
+  inc/MantidQtWidgets/Common/FindFilesWorker.h
+  inc/MantidQtWidgets/Common/Batch/QtStandardItemTreeAdapter.h
+  inc/MantidQtWidgets/Common/Batch/QtBasicNavigation.h
+  inc/MantidQtWidgets/Common/Batch/QtTreeCursorNavigation.h
+  inc/MantidQtWidgets/Common/Batch/StrictQModelIndices.h
+  inc/MantidQtWidgets/Common/Batch/FilteredTreeModel.h
+  inc/MantidQtWidgets/Common/Batch/RowLocation.h
+  inc/MantidQtWidgets/Common/Batch/RowPredicate.h
+  inc/MantidQtWidgets/Common/Batch/RowLocationAdapter.h
+  inc/MantidQtWidgets/Common/Batch/Row.h
+  inc/MantidQtWidgets/Common/Batch/Cell.h
+  inc/MantidQtWidgets/Common/Batch/CellStandardItem.h
+  inc/MantidQtWidgets/Common/Batch/CellDelegate.h
+  inc/MantidQtWidgets/Common/Batch/ExtractSubtrees.h
+  inc/MantidQtWidgets/Common/Batch/FindSubtreeRoots.h
+  inc/MantidQtWidgets/Common/Batch/BuildSubtreeItems.h
 )
 
 set ( UI_FILES
@@ -414,6 +471,7 @@ set ( TARGET_LIBRARIES
   ${Boost_LIBRARIES}
   ${PYTHON_LIBRARIES}
 )
+
 if ( ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   list ( APPEND TARGET_LIBRARIES "-framework CoreFoundation")
 endif()
@@ -476,6 +534,8 @@ mtd_add_qt_library (TARGET_NAME MantidQtWidgetsCommon
   OSX_INSTALL_RPATH
     @loader_path/../MacOS
     @loader_path/../Libraries
+  LINUX_INSTALL_RPATH
+    "\$ORIGIN/../../${LIB_DIR}"
 )
 
 ###########################################################################
@@ -484,6 +544,8 @@ mtd_add_qt_library (TARGET_NAME MantidQtWidgetsCommon
 set( TEST_FILES
   test/BatchAlgorithmRunnerTest.h
   test/FileDialogHandlerTest.h
+  test/FindFilesThreadPoolManagerTest.h
+  test/FindFilesWorkerTest.h
   test/InterfaceManagerTest.h
   test/NonOrthogonalTest.h
   test/PlotAxisTest.h
@@ -502,6 +564,13 @@ set( TEST_FILES
   test/DataProcessorUI/TwoLevelTreeManagerTest.h
   test/DataProcessorUI/WhiteListTest.h
   test/DataProcessorUI/GenericDataProcessorPresenterTest.h
+
+  test/Batch/QtAdaptedModelTest.h
+  test/Batch/RowLocationTest.h
+  test/Batch/FindSubtreeRootsTest.h
+  test/Batch/ExtractSubtreesTest.h
+  test/Batch/BuildSubtreeItemsTest.h
+
   test/ParseKeyValueStringTest.h
   test/DataProcessorUI/QOneLevelTreeModelTest.h
   test/DataProcessorUI/QTwoLevelTreeModelTest.h
@@ -520,6 +589,7 @@ mtd_add_qt_tests (TARGET_NAME MantidQtWidgetsCommonTest
   TEST_HELPER_SRCS
     ../../../Framework/TestHelpers/src/TearDownWorld.cpp
     ../../../Framework/TestHelpers/src/ComponentCreationHelper.cpp
+    ../../../Framework/TestHelpers/src/DataProcessorTestHelper.cpp
     ../../../Framework/TestHelpers/src/InstrumentCreationHelper.cpp
     ../../../Framework/TestHelpers/src/WorkspaceCreationHelper.cpp
   LINK_LIBS

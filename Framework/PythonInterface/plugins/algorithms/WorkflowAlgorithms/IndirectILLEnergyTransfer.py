@@ -53,6 +53,9 @@ class IndirectILLEnergyTransfer(PythonAlgorithm):
     def summary(self):
         return 'Performs initial energy transfer reduction for ILL indirect geometry data, instrument IN16B.'
 
+    def seeAlso(self):
+        return [ "IndirectILLReductionQENS","IndirectILLReductionFWS" ]
+
     def name(self):
         return "IndirectILLEnergyTransfer"
 
@@ -182,11 +185,12 @@ class IndirectILLEnergyTransfer(PythonAlgorithm):
 
         factor = size / (size - 1)
 
+        # minus sign is needed
         if self._doppler_energy != 0:
-            formula = '(x/{0} - 1)*{1}'.format(mid, self._doppler_energy * scale * factor)
+            formula = '-(x/{0} - 1)*{1}'.format(mid, self._doppler_energy * scale * factor)
         else:
             # Center the data for elastic fixed window scan, for integration over the elastic peak
-            formula = '(x-{0})*{1}'.format(mid-0.5, 1. / scale)
+            formula = '-(x-{0})*{1}'.format(mid-0.5, 1. / scale)
             self.log().notice('The only energy value is 0 meV. Ignore the x-axis.')
 
         self.log().information('Energy conversion formula is: {0}'.format(formula))
@@ -259,18 +263,7 @@ class IndirectILLEnergyTransfer(PythonAlgorithm):
 
         self._progress = Progress(self, start=0.0, end=1.0, nreports=self._run_file.count('+'))
 
-        # This is faster than Load, moreover MergeRuns handles the metadata correctly
-        run_files = self._run_file.split('+')
-        for i, item in enumerate(run_files):
-            runnumber = os.path.basename(item).split('.')[0]
-            ws_name = '__' + runnumber
-            self._progress.report("Loading run #"+runnumber)
-            if i == 0:
-                LoadILLIndirect(Filename=item,OutputWorkspace=self._red_ws)
-            else:
-                LoadILLIndirect(Filename=item, OutputWorkspace=ws_name)
-                MergeRuns(InputWorkspaces=[self._red_ws,ws_name],OutputWorkspace=self._red_ws)
-                DeleteWorkspace(ws_name)
+        LoadAndMerge(Filename=self._run_file, OutputWorkspace=self._red_ws, LoaderName='LoadILLIndirect')
 
         self._instrument = mtd[self._red_ws].getInstrument()
 
@@ -280,7 +273,7 @@ class IndirectILLEnergyTransfer(PythonAlgorithm):
 
         self._ws = self._red_ws + '_' + run
 
-        if len(run_files) > 1:  # multiple summed files
+        if self._run_file.count('+') > 0:  # multiple summed files
             self._ws += '_multiple'
 
         RenameWorkspace(InputWorkspace=self._red_ws, OutputWorkspace=self._ws)

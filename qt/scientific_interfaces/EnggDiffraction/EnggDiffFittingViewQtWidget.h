@@ -8,8 +8,6 @@
 
 #include "ui_EnggDiffractionQtTabFitting.h"
 
-#include <boost/scoped_ptr.hpp>
-
 // Qt classes forward declarations
 class QMessageBox;
 class QMutex;
@@ -89,17 +87,11 @@ public:
 
   std::vector<std::string> logMsgs() const override { return m_logMsgs; }
 
-  void setFittingRunNo(const std::string &path) override;
+  void setFocusedFileNames(const std::string &paths) override;
 
-  std::string getFittingRunNo() const override;
+  std::string getFocusedFileNames() const override;
 
   void enableFitAllButton(bool enable) const override;
-
-  void clearFittingComboBox() const override;
-
-  void enableFittingComboBox(bool enable) const override;
-
-  int getFittingComboIdx(std::string bank) const override;
 
   void clearFittingListWidget() const override;
 
@@ -107,36 +99,30 @@ public:
 
   int getFittingListWidgetCurrentRow() const override;
 
-  std::string getFittingListWidgetCurrentValue() const override;
+  boost::optional<std::string>
+  getFittingListWidgetCurrentValue() const override;
+
+  bool listWidgetHasSelectedRow() const override;
+
+  void updateFittingListWidget(const std::vector<std::string> &rows) override;
 
   void setFittingListWidgetCurrentRow(int idx) const override;
 
-  std::string fittingPeaksData() const override;
+  std::string getExpectedPeaksInput() const override;
 
   void setPeakList(const std::string &peakList) const override;
-
-  void setBankEmit() override;
 
   void resetCanvas() override;
 
   void setDataVector(std::vector<boost::shared_ptr<QwtData>> &data,
-                     bool focused, bool plotSinglePeaks) override;
-
-  void addBankItem(std::string bankID) override;
+                     bool focused, bool plotSinglePeaks,
+                     const std::string &xAxisLabel) override;
 
   void addRunNoItem(std::string runNo) override;
 
   std::vector<std::string> getFittingRunNumVec() override;
 
   void setFittingRunNumVec(std::vector<std::string> assignVec) override;
-
-  bool getFittingMultiRunMode() override;
-
-  void setFittingMultiRunMode(bool mode) override;
-
-  bool getFittingSingleRunMode() override;
-
-  void setFittingSingleRunMode(bool mode) override;
 
   double getPeakCentre() const override;
 
@@ -167,6 +153,8 @@ public:
     m_currentInst = newInstrument;
   }
 
+  bool plotFittedPeaksEnabled() const override;
+
 protected:
   void initLayout();
 
@@ -177,22 +165,19 @@ signals:
 private slots:
   // slot of the fitting peaks per part of the interface
   void browseFitFocusedRun();
-  void resetFittingMode();
-  void setBankIdComboBox(int idx) override;
   void setPeakPick();
   void clearPeakList();
   void loadClicked();
   void fitClicked();
   void fitAllClicked();
-  void FittingRunNo();
   void addClicked();
   void browseClicked();
   void saveClicked();
   void plotSeparateWindow();
   void showToolTipHelp();
-  void setBankDir(int idx);
-  void listViewFittingRun();
   void listWidget_fitting_run_num_clicked(QListWidgetItem *listWidget);
+  void plotFittedPeaksStateChanged();
+  void removeRunClicked();
 
 private:
   /// Setup the interface (tab UI)
@@ -211,12 +196,6 @@ private:
   static const std::string g_settingsGroup;
 
   static const std::string g_peaksListExt;
-
-  /// indentifier for fitting multi-run or single run input
-  static bool m_fittingMutliRunMode;
-
-  /// indentifier for fitting multi-run or single run input
-  static bool m_fittingSingleRunMode;
 
   // vector holding directory of focused bank file
   static std::vector<std::string> m_fitting_runno_dir_vec;
@@ -248,7 +227,7 @@ private:
   boost::shared_ptr<IEnggDiffractionPythonRunner> m_mainPythonRunner;
 
   /// presenter as in the model-view-presenter
-  boost::scoped_ptr<IEnggDiffFittingPresenter> m_presenter;
+  boost::shared_ptr<IEnggDiffFittingPresenter> m_presenter;
 
   /// current selected instrument
   /// updated from the EnggDiffractionPresenter processInstChange

@@ -2,7 +2,7 @@
 #define MANTID_DATAHANDLING_LOADINSTRUMENT_H_
 
 #include "MantidAPI/ExperimentInfo.h"
-#include "MantidAPI/ParallelAlgorithm.h"
+#include "MantidAPI/DistributedAlgorithm.h"
 
 #include <mutex>
 
@@ -24,7 +24,7 @@ class MatrixWorkspace;
 namespace Geometry {
 class CompAssembly;
 class Component;
-class Object;
+class CSGObject;
 class ObjComponent;
 class Instrument;
 }
@@ -69,7 +69,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 File change history is stored at: <https://github.com/mantidproject/mantid>
 */
-class DLLExport LoadInstrument : public API::ParallelAlgorithm {
+class DLLExport LoadInstrument : public API::DistributedAlgorithm {
 public:
   /// Algorithm's name for identification overriding a virtual method
   const std::string name() const override { return "LoadInstrument"; };
@@ -84,6 +84,10 @@ public:
 
   /// Algorithm's version for identification overriding a virtual method
   int version() const override { return 1; };
+  const std::vector<std::string> seeAlso() const override {
+    return {"LoadInstrumentFromNexus", "LoadInstrumentFromRaw",
+            "ExportGeometry", "Load"};
+  }
   /// Algorithm's category for identification overriding a virtual method
   const std::string category() const override {
     return "DataHandling\\Instrument";

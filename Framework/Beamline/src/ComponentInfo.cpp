@@ -1,10 +1,12 @@
 #include "MantidBeamline/ComponentInfo.h"
 #include "MantidBeamline/DetectorInfo.h"
 #include "MantidKernel/make_cow.h"
+#include <algorithm>
 #include <boost/make_shared.hpp>
+#include <iterator>
 #include <numeric>
+#include <sstream>
 #include <utility>
-#include <vector>
 
 namespace Mantid {
 namespace Beamline {
@@ -20,8 +22,8 @@ void checkScanInterval(const std::pair<int64_t, int64_t> &interval) {
     throw std::runtime_error(
         "ComponentInfo: cannot set scan interval with start >= end");
 }
-}
-}
+} // namespace
+} // namespace
 
 ComponentInfo::ComponentInfo()
     : m_assemblySortedDetectorIndices(
@@ -36,20 +38,25 @@ ComponentInfo::ComponentInfo(
     boost::shared_ptr<const std::vector<std::pair<size_t, size_t>>>
         componentRanges,
     boost::shared_ptr<const std::vector<size_t>> parentIndices,
+    boost::shared_ptr<std::vector<std::vector<size_t>>> children,
     boost::shared_ptr<std::vector<Eigen::Vector3d>> positions,
-    boost::shared_ptr<std::vector<Eigen::Quaterniond>> rotations,
+    boost::shared_ptr<std::vector<Eigen::Quaterniond,
+                                  Eigen::aligned_allocator<Eigen::Quaterniond>>>
+        rotations,
     boost::shared_ptr<std::vector<Eigen::Vector3d>> scaleFactors,
-    boost::shared_ptr<std::vector<bool>> isStructuredBank, int64_t sourceIndex,
-    int64_t sampleIndex)
+    boost::shared_ptr<std::vector<ComponentType>> componentType,
+    boost::shared_ptr<const std::vector<std::string>> names,
+    int64_t sourceIndex, int64_t sampleIndex)
     : m_assemblySortedDetectorIndices(std::move(assemblySortedDetectorIndices)),
       m_assemblySortedComponentIndices(
           std::move(assemblySortedComponentIndices)),
       m_detectorRanges(std::move(detectorRanges)),
       m_componentRanges(std::move(componentRanges)),
       m_parentIndices(std::move(parentIndices)),
-      m_positions(std::move(positions)), m_rotations(std::move(rotations)),
+      m_children(std::move(children)), m_positions(std::move(positions)),
+      m_rotations(std::move(rotations)),
       m_scaleFactors(std::move(scaleFactors)),
-      m_isStructuredBank(std::move(isStructuredBank)),
+      m_componentType(std::move(componentType)), m_names(std::move(names)),
       m_size(m_assemblySortedDetectorIndices->size() +
              m_detectorRanges->size()),
       m_sourceIndex(sourceIndex), m_sampleIndex(sampleIndex),
@@ -78,10 +85,27 @@ ComponentInfo::ComponentInfo(
         "ComponentInfo should have been provided same "
         "number of scale factors as number of components");
   }
-  if (m_isStructuredBank->size() != nonDetectorSize()) {
+  if (m_componentType->size() != nonDetectorSize()) {
     throw std::invalid_argument("ComponentInfo should be provided same number "
                                 "of rectangular bank flags as number of "
                                 "non-detector components");
+  }
+  if (m_names->size() != m_size) {
+    throw std::invalid_argument("ComponentInfo should be provided same number "
+                                "of names as number of components");
+  }
+
+  // Calculate total size of all assemblies
+  auto assemTotalSize = std::accumulate(
+      m_children->begin(), m_children->end(), static_cast<size_t>(1),
+      [](size_t size, const std::vector<size_t> &assem) {
+        return size += assem.size();
+      });
+
+  if (assemTotalSize != m_size) {
+    throw std::invalid_argument("ComponentInfo should be provided an "
+                                "instrument tree which contains same number "
+                                "components");
   }
 }
 
@@ -131,7 +155,23 @@ ComponentInfo::componentsInSubtree(const size_t componentIndex) const {
   return indices;
 }
 
+const std::vector<size_t> &
+ComponentInfo::children(const size_t componentIndex) const {
+  static const std::vector<size_t> emptyVec;
+
+  if (!isDetector(componentIndex))
+    return (*m_children)[compOffsetIndex(componentIndex)];
+
+  return emptyVec;
+}
+
 size_t ComponentInfo::size() const { return m_size; }
+
+size_t
+ComponentInfo::numberOfDetectorsInSubtree(const size_t componentIndex) const {
+  auto range = detectorRangeInSubtree(componentIndex);
+  return std::distance(range.begin(), range.end());
+}
 
 Eigen::Vector3d ComponentInfo::position(const size_t componentIndex) const {
   checkNoTimeDependence();
@@ -256,18 +296,16 @@ void ComponentInfo::doSetRotation(const std::pair<size_t, size_t> &index,
   auto transform = Eigen::Matrix3d(rotDelta);
 
   for (const auto &subDetIndex : detectorRange) {
-    auto newPos =
-        transform *
-            (m_detectorInfo->position({subDetIndex, timeIndex}) - compPos) +
-        compPos;
+    auto oldPos = m_detectorInfo->position({subDetIndex, timeIndex});
+    auto newPos = transform * (oldPos - compPos) + compPos;
     auto newRot = rotDelta * m_detectorInfo->rotation({subDetIndex, timeIndex});
     m_detectorInfo->setPosition({subDetIndex, timeIndex}, newPos);
     m_detectorInfo->setRotation({subDetIndex, timeIndex}, newRot);
   }
 
   for (const auto &subCompIndex : componentRangeInSubtree(componentIndex)) {
-    auto newPos =
-        transform * (position({subCompIndex, timeIndex}) - compPos) + compPos;
+    auto oldPos = position({subCompIndex, timeIndex});
+    auto newPos = transform * (oldPos - compPos) + compPos;
     auto newRot = rotDelta * rotation({subCompIndex, timeIndex});
     const size_t childCompIndexOffset = compOffsetIndex(subCompIndex);
     m_positions.access()[linearIndex({childCompIndexOffset, timeIndex})] =
@@ -294,7 +332,8 @@ void ComponentInfo::setPosition(const size_t componentIndex,
   if (isDetector(componentIndex))
     return m_detectorInfo->setPosition(componentIndex, newPosition);
 
-  // Optimization: Not using detectorsInSubtree and componentsInSubtree to avoid
+  // Optimization: Not using detectorsInSubtree and componentsInSubtree to
+  // avoid
   // memory allocations.
   // Optimization: Split loop over detectors and other components.
   const auto detectorRange = detectorRangeInSubtree(componentIndex);
@@ -494,14 +533,32 @@ Eigen::Vector3d ComponentInfo::scaleFactor(const size_t componentIndex) const {
   return (*m_scaleFactors)[componentIndex];
 }
 
+const std::string &ComponentInfo::name(const size_t componentIndex) const {
+  return (*m_names)[componentIndex];
+}
+
+size_t ComponentInfo::indexOfAny(const std::string &name) const {
+  // Reverse iterate to hit top level components sooner
+  auto it = std::find(m_names->rbegin(), m_names->rend(), name);
+  if (it == m_names->rend()) {
+    std::stringstream buffer;
+    buffer << name << " does not exist";
+    throw std::invalid_argument(buffer.str());
+  }
+  return std::distance(m_names->begin(), it.base() - 1);
+}
+
 void ComponentInfo::setScaleFactor(const size_t componentIndex,
                                    const Eigen::Vector3d &scaleFactor) {
   m_scaleFactors.access()[componentIndex] = scaleFactor;
 }
 
-bool ComponentInfo::isStructuredBank(const size_t componentIndex) const {
-  const auto rangesIndex = compOffsetIndex(componentIndex);
-  return !isDetector(componentIndex) && (*m_isStructuredBank)[rangesIndex];
+ComponentType ComponentInfo::componentType(const size_t componentIndex) const {
+  if (m_detectorInfo && isDetector(componentIndex)) {
+    return ComponentType::Detector;
+  } else {
+    return (*m_componentType)[this->compOffsetIndex(componentIndex)];
+  }
 }
 
 /**

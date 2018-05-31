@@ -67,7 +67,6 @@ class DLLExport LoadEventNexus
 
 public:
   LoadEventNexus();
-  ~LoadEventNexus() override;
 
   const std::string name() const override { return "LoadEventNexus"; };
 
@@ -80,6 +79,9 @@ public:
 
   /// Version
   int version() const override { return 1; };
+  const std::vector<std::string> seeAlso() const override {
+    return {"LoadISISNexus", "LoadEventAndCompress"};
+  }
 
   /// Category
   const std::string category() const override { return "DataHandling\\Nexus"; }
@@ -166,7 +168,7 @@ public:
 
   /// name of top level NXentry to use
   std::string m_top_entry_name;
-  ::NeXus::File *m_file;
+  std::unique_ptr<::NeXus::File> m_file;
 
 protected:
   Parallel::ExecutionMode getParallelExecutionMode(

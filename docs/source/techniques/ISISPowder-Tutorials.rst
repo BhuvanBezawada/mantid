@@ -210,6 +210,10 @@ found for each individual instrument in the reference document:
 
 How objects hold state in ISIS Powder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. warning:: This is NOT relevant for PEARL. PEARL scientists should
+	     refer to :ref:`state_for_pearl_isis-powder-diffraction-ref`
+
 Additionally as the objects hold state we can set a parameter
 anywhere. For example on Polaris the ``mode`` parameter indicates
 the chopper state for this/these run(s). This can either be set 
@@ -612,8 +616,9 @@ you must update the calibration directory. Using the cycle mapping from Peal:
 
 The relevant fields from the cycle mapping are the ``label`` and 
 ``offset_file_name``. Within the calibration directory a folder
-with the ``label`` name must exist and contain a cal file with
-the ``offset_file_name``.
+with the ``label`` name must exist. ``offset_file_name`` must either
+be the name of a cal file within that folder, or the full path to a
+cal file elsewhere.
 
 In this example we need a folder within the calibration 
 directory called *1_2* which holds a
@@ -831,6 +836,20 @@ advanced properties and chemical properties)
     my_sample.reset_sample_material()
     # Now allowed as object does not have a chemical formula associated
     my_sample.set_material(...)
+
+.. _set_beam_parameters-ref:
+
+Setting beam parameters
+-----------------------
+
+The beam width and height can be set for the instrument.
+These are then used for total scattering corrections.
+
+.. code-block:: python
+
+ from isis_powder import Polaris
+ polaris_obj = Polaris(...)
+ polaris.obj.set_beam_parameters(height=1.23, width=4,56)
 
 .. _instrument_advanced_properties_isis-powder-diffraction-ref:
 

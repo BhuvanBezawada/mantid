@@ -75,6 +75,7 @@ import mantid.geometry as geometry
 import mantid.api as api
 import mantid.dataobjects as dataobjects
 import mantid._plugins as _plugins
+import mantid.plots as plots
 
 ###############################################################################
 # Make the aliases from each module accessible in a the mantid namspace
@@ -132,3 +133,6 @@ new_attrs = _simpleapi._translate()
 _plugins.sync_attrs(_simpleapi, new_attrs, plugin_modules)
 
 ################################################################################
+
+from .fitfunctions import _attach_wrappers
+_attach_wrappers(_simpleapi)

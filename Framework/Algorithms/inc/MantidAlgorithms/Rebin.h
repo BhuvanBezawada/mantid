@@ -1,7 +1,7 @@
 #ifndef MANTID_ALGORITHMS_REBIN_H_
 #define MANTID_ALGORITHMS_REBIN_H_
 
-#include "MantidAPI/ParallelAlgorithm.h"
+#include "MantidAPI/DistributedAlgorithm.h"
 
 namespace Mantid {
 namespace Algorithms {
@@ -50,7 +50,7 @@ namespace Algorithms {
     File change history is stored at: <https://github.com/mantidproject/mantid>
     Code Documentation is available at: <http://doxygen.mantidproject.org>
  */
-class DLLExport Rebin : public API::ParallelAlgorithm {
+class DLLExport Rebin : public API::DistributedAlgorithm {
 public:
   /// Algorithm's name for identification overriding a virtual method
   const std::string name() const override { return "Rebin"; }
@@ -67,6 +67,11 @@ public:
   const std::string category() const override { return "Transforms\\Rebin"; }
   /// Algorithm's aliases
   const std::string alias() const override { return "rebin"; }
+  /// Algorithm's seeAlso
+  const std::vector<std::string> seeAlso() const override {
+    return {"RebinToWorkspace", "Rebin2D",           "Rebunch",
+            "Regroup",          "RebinByPulseTimes", "RebinByTimeAtSample"};
+  }
 
   static std::vector<double>
   rebinParamsFromInput(const std::vector<double> &inParams,
