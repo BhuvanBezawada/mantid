@@ -7,6 +7,7 @@
 #include "MantidKernel/Exception.h"
 #include "MantidKernel/Strings.h"
 #include "MantidKernel/System.h"
+#include "MantidAPI/ExperimentInfo.h"
 
 #include "boost/make_shared.hpp"
 
@@ -17,6 +18,7 @@
 using namespace Mantid;
 using namespace Mantid::Kernel;
 using namespace Mantid::Geometry;
+using namespace Mantid::API;
 
 namespace Mantid {
 namespace DataObjects {
@@ -43,7 +45,7 @@ Peak::Peak()
  *detector. Calculated if not explicitly provided.
  *        Used to give a valid TOF. Default 1.0 meters.
  */
-Peak::Peak(const Geometry::Instrument_const_sptr &m_inst,
+Peak::Peak(const API::ExperimentInfo &m_expInfo,
            const Mantid::Kernel::V3D &QLabFrame,
            boost::optional<double> detectorDistance)
     : m_H(0), m_K(0), m_L(0), m_intensity(0), m_sigmaIntensity(0),
@@ -52,7 +54,7 @@ Peak::Peak(const Geometry::Instrument_const_sptr &m_inst,
       m_orig_H(0), m_orig_K(0), m_orig_L(0), m_peakNumber(0),
       m_peakShape(boost::make_shared<NoShape>()) {
   convention = Kernel::ConfigService::Instance().getString("Q.convention");
-  this->setInstrument(m_inst);
+  this->setInstrument(m_expInfo.getInstrument());
   this->setQLabFrame(QLabFrame, detectorDistance);
 }
 
@@ -69,7 +71,7 @@ Peak::Peak(const Geometry::Instrument_const_sptr &m_inst,
  *detector. Calculated if not explicitly provided.
  *        Used to give a valid TOF. Default 1.0 meters.
  */
-Peak::Peak(const Geometry::Instrument_const_sptr &m_inst,
+Peak::Peak(const API::ExperimentInfo &m_expInfo,
            const Mantid::Kernel::V3D &QSampleFrame,
            const Mantid::Kernel::Matrix<double> &goniometer,
            boost::optional<double> detectorDistance)
@@ -82,7 +84,7 @@ Peak::Peak(const Geometry::Instrument_const_sptr &m_inst,
   if (fabs(m_InverseGoniometerMatrix.Invert()) < 1e-8)
     throw std::invalid_argument(
         "Peak::ctor(): Goniometer matrix must non-singular.");
-  this->setInstrument(m_inst);
+  this->setInstrument(m_expInfo.getInstrument());
   this->setQSampleFrame(QSampleFrame, detectorDistance);
 }
 
@@ -94,7 +96,7 @@ Peak::Peak(const Geometry::Instrument_const_sptr &m_inst,
  * @param m_Wavelength :: incident neutron wavelength, in Angstroms
  * @return
  */
-Peak::Peak(const Geometry::Instrument_const_sptr &m_inst, int m_detectorID,
+Peak::Peak(const API::ExperimentInfo &m_expInfo, int m_detectorID,
            double m_Wavelength)
     : m_H(0), m_K(0), m_L(0), m_intensity(0), m_sigmaIntensity(0),
       m_binCount(0), m_GoniometerMatrix(3, 3, true),
@@ -102,7 +104,7 @@ Peak::Peak(const Geometry::Instrument_const_sptr &m_inst, int m_detectorID,
       m_orig_H(0), m_orig_K(0), m_orig_L(0), m_peakNumber(0),
       m_peakShape(boost::make_shared<NoShape>()) {
   convention = Kernel::ConfigService::Instance().getString("Q.convention");
-  this->setInstrument(m_inst);
+  this->setInstrument(m_expInfo.getInstrument());
   this->setDetectorID(m_detectorID);
   this->setWavelength(m_Wavelength);
 }
@@ -116,7 +118,7 @@ Peak::Peak(const Geometry::Instrument_const_sptr &m_inst, int m_detectorID,
  * @param HKL :: vector with H,K,L position of the peak
  * @return
  */
-Peak::Peak(const Geometry::Instrument_const_sptr &m_inst, int m_detectorID,
+Peak::Peak(const API::ExperimentInfo &m_expInfo, int m_detectorID,
            double m_Wavelength, const Mantid::Kernel::V3D &HKL)
     : m_H(HKL[0]), m_K(HKL[1]), m_L(HKL[2]), m_intensity(0),
       m_sigmaIntensity(0), m_binCount(0), m_GoniometerMatrix(3, 3, true),
@@ -124,7 +126,7 @@ Peak::Peak(const Geometry::Instrument_const_sptr &m_inst, int m_detectorID,
       m_orig_H(0), m_orig_K(0), m_orig_L(0), m_peakNumber(0),
       m_peakShape(boost::make_shared<NoShape>()) {
   convention = Kernel::ConfigService::Instance().getString("Q.convention");
-  this->setInstrument(m_inst);
+  this->setInstrument(m_expInfo.getInstrument());
   this->setDetectorID(m_detectorID);
   this->setWavelength(m_Wavelength);
 }
@@ -139,7 +141,7 @@ Peak::Peak(const Geometry::Instrument_const_sptr &m_inst, int m_detectorID,
  * @param goniometer :: a 3x3 rotation matrix
  * @return
  */
-Peak::Peak(const Geometry::Instrument_const_sptr &m_inst, int m_detectorID,
+Peak::Peak(const API::ExperimentInfo &m_expInfo, int m_detectorID,
            double m_Wavelength, const Mantid::Kernel::V3D &HKL,
            const Mantid::Kernel::Matrix<double> &goniometer)
     : m_H(HKL[0]), m_K(HKL[1]), m_L(HKL[2]), m_intensity(0),
@@ -151,7 +153,7 @@ Peak::Peak(const Geometry::Instrument_const_sptr &m_inst, int m_detectorID,
   if (fabs(m_InverseGoniometerMatrix.Invert()) < 1e-8)
     throw std::invalid_argument(
         "Peak::ctor(): Goniometer matrix must non-singular.");
-  this->setInstrument(m_inst);
+  this->setInstrument(m_expInfo.getInstrument());
   this->setDetectorID(m_detectorID);
   this->setWavelength(m_Wavelength);
 }
@@ -163,7 +165,7 @@ Peak::Peak(const Geometry::Instrument_const_sptr &m_inst, int m_detectorID,
  * @param m_Wavelength :: incident neutron wavelength, in Angstroms
  * @return
  */
-Peak::Peak(const Geometry::Instrument_const_sptr &m_inst, double scattering,
+Peak::Peak(const API::ExperimentInfo &m_expInfo, double scattering,
            double m_Wavelength)
     : m_H(0), m_K(0), m_L(0), m_intensity(0), m_sigmaIntensity(0),
       m_binCount(0), m_GoniometerMatrix(3, 3, true),
@@ -171,7 +173,7 @@ Peak::Peak(const Geometry::Instrument_const_sptr &m_inst, double scattering,
       m_row(-1), m_col(-1), m_orig_H(0), m_orig_K(0), m_orig_L(0),
       m_peakNumber(0), m_peakShape(boost::make_shared<NoShape>()) {
   convention = Kernel::ConfigService::Instance().getString("Q.convention");
-  this->setInstrument(m_inst);
+  this->setInstrument(m_expInfo.getInstrument());
   this->setWavelength(m_Wavelength);
   m_detectorID = -1;
   // get the approximate location of the detector
@@ -225,7 +227,7 @@ Peak::Peak(const Geometry::IPeak &ipeak)
   if (fabs(m_InverseGoniometerMatrix.Invert()) < 1e-8)
     throw std::invalid_argument(
         "Peak::ctor(): Goniometer matrix must non-singular.");
-  setInstrument(ipeak.getInstrument());
+  setInstrument(m_expInfo.getInstrument());
   detid_t id = ipeak.getDetectorID();
   if (id >= 0) {
     setDetectorID(id);
@@ -352,7 +354,7 @@ const std::set<int> &Peak::getContributingDetIDs() const { return m_detIDs; }
  */
 void Peak::setInstrument(const Geometry::Instrument_const_sptr &inst) {
   m_inst = inst;
-  if (!inst)
+  if (!m_inst)
     throw std::runtime_error("Peak::setInstrument(): No instrument is set!");
 
   // Cache some positions

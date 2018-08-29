@@ -244,7 +244,7 @@ PeaksWorkspace::createPeak(const Kernel::V3D &QLabFrame,
   Geometry::Goniometer goniometer = this->run().getGoniometer();
 
   // create a peak using the qLab frame
-  auto peak = new Peak(this->getInstrument(), QLabFrame, detectorDistance);
+  auto peak = new Peak(*this, QLabFrame, detectorDistance);
 
   // Set the goniometer
   peak->setGoniometerMatrix(goniometer.getR());
@@ -309,7 +309,7 @@ Peak *PeaksWorkspace::createPeakQSample(const V3D &position) const {
     goniometer = run().getGoniometer();
   }
   // create a peak using the qLab frame
-  auto peak = new Peak(getInstrument(), position, goniometer.getR());
+  auto peak = new Peak(*this, position, goniometer.getR());
   // Take the run number from this
   peak->setRunNumber(getRunNumber());
   return peak;
@@ -516,7 +516,7 @@ Peak *PeaksWorkspace::createPeakHKL(const V3D &HKL) const {
 
   // create a peak using the qLab frame
   auto peak =
-      new Peak(this->getInstrument(),
+      new Peak(*this,
                qLabFrame); // This should calculate the detector positions too.
 
   // We need to set HKL separately to keep things consistent.

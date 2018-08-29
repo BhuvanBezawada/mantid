@@ -12,7 +12,11 @@
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "MantidAPI/ExperimentInfo.h"
+
 namespace Mantid {
+ 
+  using Mantid::API::ExperimentInfo;
 
 namespace Geometry {
 class InstrumentRayTracer;
@@ -31,21 +35,21 @@ public:
   friend class PeakColumn;
 
   Peak();
-  Peak(const Geometry::Instrument_const_sptr &m_inst,
+  Peak(const API::ExperimentInfo &m_expInfo,
        const Mantid::Kernel::V3D &QLabFrame,
        boost::optional<double> detectorDistance = boost::none);
-  Peak(const Geometry::Instrument_const_sptr &m_inst,
+  Peak(const API::ExperimentInfo &m_expInfo,
        const Mantid::Kernel::V3D &QSampleFrame,
        const Mantid::Kernel::Matrix<double> &goniometer,
        boost::optional<double> detectorDistance = boost::none);
-  Peak(const Geometry::Instrument_const_sptr &m_inst, int m_detectorID,
+  Peak(const API::ExperimentInfo &m_expInfo, int m_detectorID,
        double m_Wavelength);
-  Peak(const Geometry::Instrument_const_sptr &m_inst, int m_detectorID,
+  Peak(const API::ExperimentInfo &m_expInfo, int m_detectorID,
        double m_Wavelength, const Mantid::Kernel::V3D &HKL);
-  Peak(const Geometry::Instrument_const_sptr &m_inst, int m_detectorID,
+  Peak(const API::ExperimentInfo &m_expInfo, int m_detectorID,
        double m_Wavelength, const Mantid::Kernel::V3D &HKL,
        const Mantid::Kernel::Matrix<double> &goniometer);
-  Peak(const Geometry::Instrument_const_sptr &m_inst, double scattering,
+  Peak(const API::ExperimentInfo &m_expInfo, double scattering,
        double m_Wavelength);
 
   /// Copy constructor
@@ -259,6 +263,9 @@ private:
 
   // ki-kf for Inelastic convention; kf-ki for Crystallography convention
   std::string convention;
+
+  // For storing an ExperimentInfo object
+  const API::ExperimentInfo m_expInfo;
 };
 
 } // namespace DataObjects
