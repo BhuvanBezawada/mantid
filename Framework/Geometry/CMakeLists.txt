@@ -260,6 +260,7 @@ set ( INC_FILES
 	inc/MantidGeometry/Objects/CSGObject.h
 	inc/MantidGeometry/Objects/IObject.h
 	inc/MantidGeometry/Objects/InstrumentRayTracer.h
+	inc/MantidGeometry/Objects/BeamlineRayTracer.h
         inc/MantidGeometry/Objects/MeshObject.h
 	inc/MantidGeometry/Objects/Rules.h
 	inc/MantidGeometry/Objects/ShapeFactory.h
@@ -328,6 +329,7 @@ set ( TEST_FILES
 	IndexingUtilsTest.h
 	InstrumentDefinitionParserTest.h
 	InstrumentRayTracerTest.h
+	BeamlineRayTracerTest.h
 	InstrumentTest.h
 	InstrumentVisitorTest.h
 	IsotropicAtomBraggScattererTest.h
