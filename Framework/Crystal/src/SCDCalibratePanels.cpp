@@ -261,7 +261,7 @@ void SCDCalibratePanels::exec() {
         try {
           V3D q_lab =
               (peak.getGoniometerMatrix() * UB) * peak.getHKL() * M_2_PI;
-          Peak theoretical(peak.getInstrument(), q_lab);
+          Peak theoretical(*peaksWs, q_lab);
           ColX[icount] = peak.getCol();
           ColY[icount] = theoretical.getCol();
           RowX[icount] = peak.getRow();

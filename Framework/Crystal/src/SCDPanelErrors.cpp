@@ -191,7 +191,7 @@ void SCDPanelErrors::eval(double xshift, double yshift, double zshift,
             boost::math::iround(peak.getL()));
     V3D Q2 = lattice.qFromHKL(hkl);
     try {
-      DataObjects::Peak peak2(inst, peak.getDetectorID(), peak.getWavelength(),
+      DataObjects::Peak peak2(*inputP, peak.getDetectorID(), peak.getWavelength(),
                               hkl, peak.getGoniometerMatrix());
       Units::Wavelength wl;
 

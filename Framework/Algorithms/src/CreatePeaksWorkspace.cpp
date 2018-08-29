@@ -66,7 +66,7 @@ void CreatePeaksWorkspace::exec() {
 
     // Create some default peaks
     for (int i = 0; i < NumberOfPeaks; i++) {
-      out->addPeak(Peak(out->getInstrument(),
+      out->addPeak(Peak(*out,
                         out->getInstrument()->getDetectorIDs(true)[0], 1.0));
       progress.report();
     }

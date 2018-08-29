@@ -113,7 +113,7 @@ void LoadHKL::exec() {
       wl2 = wl / 1.8;
     }
 
-    Peak peak(inst, scattering, wl);
+    Peak peak(*ws, scattering, wl);
     peak.setHKL(qSign * h, qSign * k, qSign * l);
     peak.setIntensity(Inti);
     peak.setSigmaIntensity(SigI);

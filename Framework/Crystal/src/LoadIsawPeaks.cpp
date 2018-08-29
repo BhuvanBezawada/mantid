@@ -327,7 +327,7 @@ DataObjects::Peak LoadIsawPeaks::readPeak(PeaksWorkspace_sptr outWS,
       findPixelID(inst, bankName, static_cast<int>(col), static_cast<int>(row));
 
   // Create the peak object
-  Peak peak(outWS->getInstrument(), pixelID, wl);
+  Peak peak(*outWS, pixelID, wl);
   peak.setHKL(qSign * h, qSign * k, qSign * l);
   peak.setIntensity(Inti);
   peak.setSigmaIntensity(SigI);
