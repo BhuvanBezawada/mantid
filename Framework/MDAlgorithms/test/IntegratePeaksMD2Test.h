@@ -145,7 +145,7 @@ public:
     // --- Make a fake PeaksWorkspace ---
     PeaksWorkspace_sptr peakWS0(new PeaksWorkspace());
     peakWS0->setInstrument(inst);
-    peakWS0->addPeak(Peak(inst, 15050, 1.0));
+    peakWS0->addPeak(Peak(*peakWS0, 15050, 1.0));
 
     TS_ASSERT_EQUALS(peakWS0->getPeak(0).getIntensity(), 0.0);
     AnalysisDataService::Instance().add("IntegratePeaksMD2Test_peaks", peakWS0);
@@ -193,7 +193,7 @@ public:
 
     // ------------- Adaptive Integration r=MQ+b where b is PeakRadius and m is
     // 0.01 ------------------------
-    peakWS0->addPeak(Peak(inst, 15050, 1.0, V3D(2., 3., 4.)));
+    peakWS0->addPeak(Peak(*peakWS0, 15050, 1.0, V3D(2., 3., 4.)));
     doRun(0.1, 0.0, "IntegratePeaksMD2Test_peaks", 0.0, true, false, "NoFit",
           0.01);
     TS_ASSERT_DELTA(peakWS0->getPeak(1).getIntensity(), 29.0, 1e-2);
@@ -214,9 +214,9 @@ public:
 
     // --- Make a fake PeaksWorkspace ---
     PeaksWorkspace_sptr peakWS(new PeaksWorkspace());
-    peakWS->addPeak(Peak(inst, 15050, 1.0, V3D(0., 0., 0.)));
-    peakWS->addPeak(Peak(inst, 15050, 1.0, V3D(2., 3., 4.)));
-    peakWS->addPeak(Peak(inst, 15050, 1.0, V3D(6., 6., 6.)));
+    peakWS->addPeak(Peak(*peakWS, 15050, 1.0, V3D(0., 0., 0.)));
+    peakWS->addPeak(Peak(*peakWS, 15050, 1.0, V3D(2., 3., 4.)));
+    peakWS->addPeak(Peak(*peakWS, 15050, 1.0, V3D(6., 6., 6.)));
 
     TS_ASSERT_EQUALS(peakWS->getPeak(0).getIntensity(), 0.0);
     AnalysisDataService::Instance().add("IntegratePeaksMD2Test_peaks", peakWS);
@@ -302,7 +302,7 @@ public:
         ComponentCreationHelper::createTestInstrumentCylindrical(5);
     // --- Make a fake PeaksWorkspace ---
     PeaksWorkspace_sptr peakWS(new PeaksWorkspace());
-    peakWS->addPeak(Peak(inst, 1, 1.0, V3D(0., 0., 0.)));
+    peakWS->addPeak(Peak(*peakWS, 1, 1.0, V3D(0., 0., 0.)));
     AnalysisDataService::Instance().add("IntegratePeaksMD2Test_peaks", peakWS);
 
     // Integrate and copy to a new peaks workspace
@@ -338,7 +338,7 @@ public:
     PeaksWorkspace_sptr peakWS(new PeaksWorkspace());
     Instrument_sptr inst =
         ComponentCreationHelper::createTestInstrumentCylindrical(5);
-    peakWS->addPeak(Peak(inst, 1, 1.0, V3D(0., 0., 0.)));
+    peakWS->addPeak(Peak(*peakWS, 1, 1.0, V3D(0., 0., 0.)));
     TS_ASSERT_EQUALS(peakWS->getPeak(0).getIntensity(), 0.0);
     AnalysisDataService::Instance().addOrReplace("IntegratePeaksMD2Test_peaks",
                                                  peakWS);
@@ -495,7 +495,7 @@ public:
         IntegratePeaksMD2Test::addPeak(10000, x, y, z, 0.015);
 
       // Add to peaks workspace
-      peakWS->addPeak(Peak(inst, 1, 1.0, V3D(x, y, z)));
+      peakWS->addPeak(Peak(*peakWS, 1, 1.0, V3D(x, y, z)));
     }
     AnalysisDataService::Instance().add("IntegratePeaksMD2Test_peaks", peakWS);
   }

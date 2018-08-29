@@ -156,7 +156,7 @@ buildPeakWorkspace(std::vector<int> vec_run_number,
   TS_ASSERT_EQUALS(num_peaks, vec_q_sample.size());
 
   for (size_t i_peak = 0; i_peak < num_peaks; ++i_peak) {
-    Peak p(inst, 1, 3.0);
+    Peak p(*pw, 1, 3.0);
     Mantid::Kernel::V3D qsample = vec_q_sample[i_peak];
     p.setQSampleFrame(qsample, 0.37);
     p.setRunNumber(vec_run_number[i_peak]);

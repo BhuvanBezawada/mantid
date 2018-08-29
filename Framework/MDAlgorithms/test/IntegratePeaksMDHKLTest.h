@@ -137,7 +137,7 @@ public:
     // --- Make a fake PeaksWorkspace ---
     PeaksWorkspace_sptr peakWS0(new PeaksWorkspace());
     peakWS0->setInstrument(inst);
-    Peak Pin(inst, 15050, 1.0);
+    Peak Pin(*peakWS0, 15050, 1.0);
     Pin.setHKL(V3D(1, 1, 1));
     peakWS0->addPeak(Pin);
 
@@ -173,7 +173,7 @@ public:
     PeaksWorkspace_sptr peakWS(new PeaksWorkspace());
     Instrument_sptr inst =
         ComponentCreationHelper::createTestInstrumentCylindrical(5);
-    Peak Pin(inst, 1, 1.0);
+    Peak Pin(*peakWS, 1, 1.0);
     Pin.setHKL(V3D(1, 1, 1));
     peakWS->addPeak(Pin);
     TS_ASSERT_EQUALS(peakWS->getPeak(0).getIntensity(), 0.0);

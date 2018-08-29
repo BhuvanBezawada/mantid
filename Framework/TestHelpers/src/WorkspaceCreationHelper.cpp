@@ -1346,7 +1346,7 @@ createPeaksWorkspace(const int numPeaks, const bool createOrientedLattice) {
   peaksWS->setInstrument(inst);
 
   for (int i = 0; i < numPeaks; ++i) {
-    Peak peak(inst, i, i + 0.5);
+    Peak peak(*peaksWS, i, i + 0.5);
     peaksWS->addPeak(peak);
   }
 

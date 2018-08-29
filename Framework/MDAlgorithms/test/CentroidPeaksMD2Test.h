@@ -103,7 +103,7 @@ public:
     // --- Make a fake PeaksWorkspace in the given coordinate space ---
     PeaksWorkspace_sptr peakWS(new PeaksWorkspace());
 
-    Peak pIn(inst, 1, 1.0, startPos);
+    Peak pIn(*peakWS, 1, 1.0, startPos);
     if (CoordinatesToUse == "Q (lab frame)")
       pIn.setQLabFrame(startPos, 1 /*sample to detector distance*/);
     else if (CoordinatesToUse == "Q (sample frame)")
